@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spin Wheel</title>
+    <!-- Preload critical resources -->
+    <link rel="stylesheet" href="./assets/styles.css">
+    <link rel="preload" href="./assets/title.webp" as="image">
+    <link rel="preload" href="./assets/pop-up.webp" as="image">
+    <link rel="preload" href="./assets/hand.webp" as="image">
+    <link rel="stylesheet" href="./assets/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="js" href="./assets/script.js" as="script">
+    <style>
+        canvas {
+            width: 100%;
+            margin: 0;
+            position: absolute;
+            top: 0;
+            z-index: -1;
+            overflow: hidden;
+            height: 100vh;
+            will-change: transform, opacity;
+        }
+
+        .wobble-hor-bottom {
+            animation: wobble-hor-bottom 1.5s infinite both;
+        }
+
+        .pre-loader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .user-count {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0px;
+            color: #fff;
+            margin-top: 0px;
+        }
+
+        @keyframes wobble-hor-bottom {
+
+            0%,
+            100% {
+                transform: translateX(0%);
+            }
+
+            50% {
+                transform: translateX(5px) rotate(3deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="fireworks-con">
+        <div class="firework"></div>
+        <div class="firework"></div>
+        <div class="firework"></div>
+    </div>
+
+    <div class="pre-loader">
+        <span class="loader"></span>
+    </div>
+
+    <main>
+        <img src="./assets/title.webp" alt="Bonus Prize Spin Wheel" width="300" height="200" class="mt-10 title"
+            loading="eager">
+
+        <!-- Lazy-load non-essential assets -->
+        <audio id="myAudio" src="./assets/spin_audio.mp3" preload="none" type="audio/mp3"></audio>
+        <audio id="coins_audio" src="./assets/Coins_count.mp3" preload="none" type="audio/mp3"></audio>
+        <audio id="crowd_cheering" src="./assets/crowd_cheering.mp3" preload="none" type="audio/mp3"></audio>
+        <audio id="winner_cheer" src="./assets/winner_cheers.mp3" preload="none" type="audio/mp3"></audio>
+
+        <div class="active-users" style="background-image: linear-gradient(to right, #434a54, #292f36); padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 8px 16px 0 rgba(0, 0, 0, 0.2); margin-top: 10px; border: 1px solid white;">
+            <p class="user-count" style="font-size: 22px; font-weight: bold; color: #61dafb; margin: 0; animation: pulse 2s infinite;">
+                <span style="display: inline-block; width: 12px; height: 12px; background-image: linear-gradient(to right, #34eb6d, #1f9d55); border-radius: 50%; margin-right: 5px;"></span>
+                Active users: <span class="count" style="color: #fff; font-size: 24px;">0</span>
+            </p>
+        </div>
+        
+
+        <div class="wheel-container mt-10">
+            <img src="./assets/hand.webp" class="hand" alt="hand" width="150" height="70">
+
+            <div class="border">
+                <div class="wheel" id="wheel">
+                    <div class="segment" data-value="9500"><span>9,500</span></div>
+                    <div class="segment" data-value="8000"><span>8,000</span></div>
+                    <div class="segment" data-value="6500"><span>6,500</span></div>
+                    <div class="segment" data-value="4000"><span>4,000</span></div>
+                    <div class="segment" data-value="3000"><span>3,000</span></div>
+                    <div class="segment" data-value="2000"><span>2,000</span></div>
+                </div>
+                <div class="spin_button" id="spin">SPIN</div>
+            </div>
+            <div class="pointer">
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <div class="popup-model">
+            <canvas id="canvas"></canvas>
+
+            <div class="popup-con mt-20">
+                <img src="./assets/pop-up.webp" class="coin_bag" alt="popup">
+
+                <button class="claim-amount mt-30 pulsate-fwd" type="button">Withdraw Now</button>
+                <div class="steps">
+                    <div class="points">
+                        <p style="margin: 0px;" class="point_number">1</p>
+                        <p style="margin: 0px;" class="point_text">Download</p>
+                    </div>
+                    <img src="./assets/arrow.svg" alt="arrow" class="blink-1">
+                    <div class="points">
+                        <p style="margin: 0px;" class="point_number">2</p>
+                        <p style="margin: 0px;" class="point_text">Install</p>
+                    </div>
+                    <img src="./assets/arrow.svg" alt="arrow" class="blink-1">
+                    <div class="points">
+                        <p style="margin: 0px;" class="point_number">3</p>
+                        <p style="margin: 0px;" class="point_text">Register</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="timer" style="font-weight: 600; margin-top: 20px; text-align: center;"></div>
+        </div>
+    </main>
+    <script src="./assets/script.js" defer></script>
+
+    <script>
+        const activeUsers = document.querySelector('.active-users .count');
+        const start = 0;
+        const end = Math.floor(Math.random() * (2000 - 1500 + 1)) + 1500;
+        const duration = 2000;
+
+        let startTime = null;
+        function step(timestamp) {
+            if (startTime === null) startTime = timestamp;
+            const progress = timestamp - startTime;
+            const count = Math.floor(progress / duration * (end - start) + start);
+            activeUsers.textContent = count;
+            if (progress < duration) {
+                window.requestAnimationFrame(step);
+            }
+        }
+        window.requestAnimationFrame(step);
+    </script>
+
+    <script>
+        let W = window.innerWidth;
+        let H = window.innerHeight;
+        const canvas = document.getElementById("canvas");
+        const context = canvas.getContext("2d");
+        const maxConfettis = 10;
+        const particles = [];
+
+        const possibleColors = [
+            "DodgerBlue", "OliveDrab", "Gold", "Pink", "SlateBlue", "LightBlue",
+            "Gold", "Violet", "PaleGreen", "SteelBlue", "SandyBrown", "Chocolate", "Crimson"
+        ];
+
+        function randomFromTo(from, to) {
+            return Math.floor(Math.random() * (to - from + 1) + from);
+        }
+
+        function confettiParticle() {
+            this.x = Math.random() * W; // x
+            this.y = Math.random() * H - H; // y
+            this.r = randomFromTo(11, 33); // radius
+            this.d = Math.random() * maxConfettis + 11;
+            this.color = possibleColors[Math.floor(Math.random() * possibleColors.length)];
+            this.tilt = Math.floor(Math.random() * 33) - 11;
+            this.tiltAngleIncremental = Math.random() * 0.07 + 0.05;
+            this.tiltAngle = 0;
+
+            this.draw = function () {
+                context.beginPath();
+                context.lineWidth = this.r / 2;
+                context.strokeStyle = this.color;
+                context.moveTo(this.x + this.tilt + this.r / 3, this.y);
+                context.lineTo(this.x + this.tilt, this.y + this.tilt + this.r / 5);
+                return context.stroke();
+            };
+        }
+
+        function Draw() {
+            requestAnimationFrame(Draw);
+            context.clearRect(0, 0, W, window.innerHeight);
+
+            for (let i = 0; i < maxConfettis; i++) {
+                particles[i].draw();
+            }
+
+            for (let i = 0; i < maxConfettis; i++) {
+                let particle = particles[i];
+
+                particle.tiltAngle += particle.tiltAngleIncremental;
+                particle.y += (Math.cos(particle.d) + 3 + particle.r / 2) / 2;
+                particle.tilt = Math.sin(particle.tiltAngle - i / 3) * 15;
+
+                if (particle.y > H) {
+                    particle.x = Math.random() * W;
+                    particle.y = -30;
+                }
+            }
+        }
+
+        window.addEventListener("resize", () => {
+            W = window.innerWidth;
+            H = window.innerHeight;
+            canvas.width = W;
+            canvas.height = H;
+        }, false);
+
+        for (let i = 0; i < maxConfettis; i++) {
+            particles.push(new confettiParticle());
+        }
+
+        canvas.width = W;
+        canvas.height = H;
+        Draw();
+    </script>
+</body>
+
+</html>
